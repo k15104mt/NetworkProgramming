@@ -1,60 +1,58 @@
-#include<sys/socket.h>
-#include<arpa/inet.h>
-#include<stdio.h>
-#include<unistd.h>//closeを使うため
-#include<string.h>
-#include<stdlib.h>
+#include <stdio.h>              /* printf(),fprintf()に必要 */
+#include <stdlib.h>             /* perror(),atoi()に必要 */
+#include <sys/socket.h>         /* socket(),connect()に必要 */
+#include <arpa/inet.h>          /* sockaddr_in,inet_addr()に必要 */
+#include <string.h>             /* strlen()に必要 */
+#include <unistd.h>             /* close()に必要 */
+#define BUF_SIZE 256            /* マジックナンバーで256の定義 */
 
-#define BUF_SIZE 256 //マクロ
-
-void DieWithError(char *ErrorMessage){
-	perror(ErrorMessage);//標準エラー出力にエラーメッセージを出す
-	exit(1);//≒終了ステータス。エラーの時は１以上を返す
-	
-}
-void commun(int sock){//原則としてプログラムは上から下に読み込まれるので、どういう関数かを教えるこの関数はmainの上に書いたほうがよい
-	char buf[BUF_SIZE];
-	int len_r;
-	char *message = "banana banana banana banana banana banana banana banana banana banana banana";
-	//send(sock,message,strlen(message),0);
-	
-	if(send(sock,message,strlen(message),0)!=strlen(message))DieWithError("send()send a message of unexpected bytes");
-	
-	if(len_r = recv(sock,buf,BUF_SIZE,0)<=0)DieWithError("recv()failed");
-	
-	buf[len_r] = '\0';//nul
-	printf("%s\n",buf);//%s 文字列の出力
+/**
+struct in_addr{
+    unsigned long s_addr;       //IPアドレス
+};
+struct sockaddr_in {
+    unsigned short sin_family;  // アドレスファミリ (TCP or IP)
+    unsigned short sin_port;    // アドレスポート (ポート番号)
+    struct in_addr sin_addr;    // IPアドレス
+    char sin_zero[8];           // 不使用領域
+};
+**/
+void DieWithError(char *errorMessage){
+    perror(errorMessage);                                           /* 標準エラー出力にエラーメッセージを返す */
+    exit(1);                                                        /* 引数は「終了ステータス」→ エラーの時は１以上を返す */
 }
 
+void commun(int sock){
+    char buf[BUF_SIZE];                                             /* エコー文字列用のバッファ */
+    char message[BUF_SIZE]="";                                      /* 送信するメッセージ　*/
+    scanf("%s",message);                                            /* メッセージをユーザーが入力する */
 
-//send関数の引数　ソケットディスクリプタ、メッセージ、メッセージの文字数、0(固定)
+    if(send(sock,message,strlen(message),0)!=strlen(message))       /* サーバーにメッセージの送信 */
+        DieWithError("Send() sent a message of unexpected");        /* 送信時エラーの判定 */
 
-int main(int argc,char**argv){
-	
-	if(argc != 3)DieWithError("arduments is not available");
-	char *server_ipaddr = argv[1];//char *server_ipaddr = "10.13.64.20";
-	int server_port = atoi(argv[2]);//int server_port = 10001;
-	int sock = socket(PF_INET,SOCK_STREAM,0);//通信用の設備を開く
-	if(sock < 0)DieWithError("soclet()failed");
-	
-	struct sockaddr_in target;
-	
-	target.sin_family = AF_INET;
-	
-	//target.sin_addr.s_addr = inet_addr("10.13.64.20");
-	//target.sin_port = htons(10001);
-	
-	target.sin_addr.s_addr = inet_addr("server_ipaddr");
-	target.sin_port = htons(server_port);
-	
-	if(connect(sock,(struct sockaddr*)&target,sizeof(target))<0)DieWithError("connect()failed");
-	
-	commun(sock);
-	//printf("sock is %d",sock);
-	close(sock);	//終了時に閉じる
+    if((recv(sock,buf,BUF_SIZE,0))<=0)                               /* 受信データをバッファに格納 */
+        DieWithError("recv()failed");                               /* 受信時エラー */
 
-	return 0;
+    printf("%s\n",buf);                                             /* 受信データを出力 */
 }
 
+int main(int argc, char **argv){                                    /* 第一引数: コマンドライン引数の数, 第二引数: コマンドライン引数を格納した配列 */
+    if(argc != 3)DieWithError("arguments is not available");        /* 実行時引数の個数が正常であることを確認する */
+    char *server_idaddr = argv[1];                                  /* サーバーのIPアドレスを実行時引数から取得 */
+    int server_port = atoi(argv[2]);                                /* サーバーのポート番号を実行時引数から取得 */
 
+    int sock = socket(PF_INET,SOCK_STREAM,0);                       /* TCPソケットを作成する */
+    if(sock<0)DieWithError("socket()failed");                       /* 生成時エラーの判定(0以上:成功, -1:エラー) */
 
+    struct sockaddr_in target;                                      /* サーバーのアドレス */
+    target.sin_family = AF_INET;                                    /* インターネットアドレスファミリ */
+    target.sin_addr.s_addr = inet_addr(server_idaddr);              /* サーバーのIPアドレス */
+    target.sin_port = htons(server_port);                           /* サーバーのポート番号 */
+
+    if(connect(sock,(struct sockaddr *)&target,sizeof(target))<0)   /* サーバーへの接続を確立する */
+        DieWithError("connect()failed");                            /* 接続時エラーの判定 */
+    
+    commun(sock);                                                   /* 関数内の処理でサーバーと各種通信を行う */
+    close(sock);                                                    /* サーバーとの接続をクローズする */
+    return 0;
+}
