@@ -1,7 +1,0 @@
-Exception: STATUS_ACCESS_VIOLATION at eip=61179166
-eax=000000EF ebx=0040306D ecx=FFFFFFFE edx=80038329 esi=611AED3F edi=00000000
-ebp=611B2F70 esp=0028B6A0 program=C:\NetworkProgramming\client.exe, pid 7576, thread main
-cs=0023 ds=002B es=002B fs=0053 gs=002B ss=002B
-Stack trace:
-Frame     Function  Args
-End of stack trace
